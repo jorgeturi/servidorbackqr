@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API de Validación de QR</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+</head>
+<body>
+  <h1>API de Validación de QR</h1>
+  <p>Esta página funciona como una API. Use la URL con el parámetro 'qr' para validar un código QR.</p>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDDwoPMT1AeemByzRwuXGE2qnPNYmW5Pmg",
+      authDomain: "finalpoo-turinajorge.firebaseapp.com",
+      projectId: "finalpoo-turinajorge",
+      storageBucket: "finalpoo-turinajorge.appspot.com",
+      messagingSenderId: "929827470228",
+      appId: "1:929827470228:web:03a6a7a934d4e19caa2d81",
+      measurementId: "G-B3M3SP1SKF"
+    };
+
+    // Inicializa Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    async function validateQR(qr) {
+      const db = firebase.firestore();
+      const usersRef = db.collection("users");
+      let qrFound = false;
+
+      try {
+        // Recorremos todos los usuarios
+        const userDocs = await usersRef.get();
+        for (const userDoc of userDocs.docs) {
+          const userId = userDoc.id;
+          const qrsRef = usersRef.doc(userId).collection("qrs");
+          const qrDocs = await qrsRef.get();
+          const qrList = qrDocs.docs.map(doc => doc.id);
+
+          if (qrList.includes(qr)) {
+            qrFound = true;
+            break;
+          }
+        }
+
+        // Crear un objeto de respuesta en formato JSON
+        return qrFound ? 
+          { status: "success", message: "QR encontrado", qr: qr } : 
+          { status: "not_found", message: "QR no encontrado", qr: qr };
+      } catch (error) {
+        console.error('Error al validar el QR:', error);
+        return { status: "error", message: "Error al validar el QR", error: error.message };
+      }
+    }
+
+    // Función para manejar la solicitud
+    async function handleRequest() {
+      const queryString = window.location.search;
+      const params = new URLSearchParams(queryString);
+      const scannedQR = params.get("qr");
+
+      if (scannedQR) {
+        const result = await validateQR(scannedQR);
+        document.body.innerHTML = JSON.stringify(result, null, 2);
+        document.body.style.whiteSpace = 'pre';
+        document.body.style.fontFamily = 'monospace';
+      } else {
+        document.body.innerHTML = JSON.stringify({ status: "error", message: "Parámetro 'qr' no proporcionado" }, null, 2);
+        document.body.style.whiteSpace = 'pre';
+        document.body.style.fontFamily = 'monospace';
+      }
+    }
+
+    // Llamar a la función de manejo de solicitud
+    handleRequest();
+  </script>
+</body>
+</html>
+
